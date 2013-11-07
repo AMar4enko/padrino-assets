@@ -20,6 +20,9 @@ module Padrino
         end.flatten
       end
 
+      def setup(&block)
+        @setup_block = block
+      end
       ###
       # Returns the Padrino apps that are using Padrino::Assets
       #
