@@ -115,8 +115,9 @@ module Padrino
 
           environment.context_class.class_eval do
             include Helpers
+            define_method(:settings) { app }
           end
-
+          @setup_block.call(environment) if @setup_block
           app.set :sprockets_environment,  app.index_assets ? environment.index : environment
           app.set :sprockets_manifest,     Sprockets::Manifest.new(environment, app.manifest_file)
         end
