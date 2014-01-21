@@ -93,7 +93,7 @@ module Padrino
           require 'sprockets'
 
           if Padrino.mounted_apps.size > 1
-            app.set :assets_prefix, '/assets/' + app.app_name.to_s.split('/').last
+            app.set :assets_prefix, '/assets/' + app.to_s.underscore.split('/').last
           end
 
           app.get("#{app.assets_prefix}/*") do
