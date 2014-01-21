@@ -75,7 +75,7 @@ module Padrino
 
         compressor.respond_to?(:new) ? compressor.new : compressor
       end
-
+      
       # @private
       def registered(app)
         app.helpers Helpers
@@ -89,16 +89,16 @@ module Padrino
         app.set :manifest_file,   -> { File.join(app.public_folder, app.assets_prefix, 'manifest.json') }
         app.set :precompile_assets,  [ /^application\.(js|css)$/i ]
 
+        app.get("#{app.assets_prefix}/*") do
+            env['PATH_INFO'].gsub!("#{app.assets_prefix}/", '')
+            app.sprockets_environment.call(env)
+        end
+
         Padrino.after_load do
           require 'sprockets'
 
           if Padrino.mounted_apps.size > 1
             app.set :assets_prefix, '/assets/' + app.to_s.underscore.split('/').last
-          end
-
-          app.get("#{app.assets_prefix}/*") do
-            env['PATH_INFO'].gsub!("#{app.assets_prefix}/", '')
-            app.sprockets_environment.call(env)
           end
 
           environment = Sprockets::Environment.new(app.root)
