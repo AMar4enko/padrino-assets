@@ -19,10 +19,6 @@ module Padrino
           Dir[Padrino.root("#{directory}/assets/**")]
         end.flatten
       end
-
-      def setup(&block)
-        @setup_block = block
-      end
       ###
       # Returns the Padrino apps that are using Padrino::Assets
       #
@@ -78,7 +74,6 @@ module Padrino
       
       # @private
       def registered(app)
-        app.helpers Helpers
         app.set :assets_prefix,   '/assets'
         app.set :assets_version,  1.0
         app.set :assets_host,     nil
@@ -89,42 +84,6 @@ module Padrino
         app.set :manifest_file,   -> { File.join(app.public_folder, app.assets_prefix, 'manifest.json') }
         app.set :precompile_assets,  [ /^application\.(js|css)$/i ]
 
-        app.get("#{app.assets_prefix}/*") do
-            env['PATH_INFO'].gsub!("#{app.assets_prefix}/", '')
-            app.sprockets_environment.call(env)
-        end
-
-        Padrino.after_load do
-          require 'sprockets'
-
-          if Padrino.mounted_apps.size > 1
-            app.set :assets_prefix, '/assets/' + app.to_s.underscore.split('/').last
-          end
-
-          environment = Sprockets::Environment.new(app.root)
-
-          environment.logger  = app.logger
-          environment.version = app.assets_version
-
-          if defined?(Padrino::Cache)
-            if app.respond_to?(:caching) && app.caching?
-              environment.cache = app.cache
-            end
-          end
-
-          (load_paths + Dir["#{app.root}/assets/**"]).flatten.each do |path|
-            environment.append_path(path)
-          end
-
-          environment.context_class.class_eval do
-            include Helpers
-            define_method(:settings) { app }
-          end
-          @setup_block.call(environment) if @setup_block
-          app.set :sprockets_environment,  app.index_assets ? environment.index : environment
-          app.set :sprockets_manifest,     Sprockets::Manifest.new(environment, app.manifest_file)
-        end
-
         registered_apps << app
       end
     end
@@ -133,7 +92,44 @@ module Padrino
     register_compressor :js,  :yui      => 'YUI::JavaScriptCompressor'
     register_compressor :js,  :closure  => 'Closure::Compiler'
     register_compressor :js,  :uglifier => 'Uglifier'
+
+    Padrino.after_load do
+      require 'sprockets'
+
+      Padrino::Assets.registered_apps.each do |app|
+        app.register Padrino::Assets::Helpers
+        environment = Sprockets::Environment.new(app.root)
+
+        environment.logger  = app.logger
+        environment.version = app.assets_version
+
+        if defined?(Padrino::Cache)
+          if app.respond_to?(:caching) && app.caching?
+            environment.cache = app.cache
+          end
+        end
+
+        (load_paths + Dir["#{app.root}/assets/**"]).flatten.each do |path|
+          environment.append_path(path)
+        end
+
+        environment.context_class.class_eval do
+          include Helpers
+          define_method(:settings) { app }
+        end
+        @setup_block.call(environment) if @setup_block
+        app.set :sprockets_environment,  app.index_assets ? environment.index : environment
+        app.set :sprockets_manifest,     Sprockets::Manifest.new(environment, app.manifest_file)
+
+        app.get("#{app.assets_prefix}/*") do
+          env['PATH_INFO'].gsub!("#{app.assets_prefix}/", '')
+          app.sprockets_environment.call(env)
+        end
+      end
+    end
+
   end # Assets
 end # Padrino
+
 
 Padrino::Tasks.files << Dir[File.dirname(__FILE__) + '/tasks/**/*.rake']
