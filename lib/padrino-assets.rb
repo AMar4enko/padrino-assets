@@ -74,6 +74,7 @@ module Padrino
       
       # @private
       def registered(app)
+        app.helpers Helpers
         app.set :assets_prefix,   '/assets'
         app.set :assets_version,  1.0
         app.set :assets_host,     nil
