@@ -416,7 +416,7 @@ module Padrino
     private
 
       def mount_point
-        @mount_point ||= Padrino.mounted_apps.find {|mounter| mounter.app_obj == self.class}.uri_root
+        @mount_point ||= Padrino.mounted_apps.find {|mounter| mounter.app_obj == settings}.uri_root
       end
 
       def rewrite_extension(source, extension)
@@ -435,7 +435,13 @@ module Padrino
       end
 
       def rewrite_asset_path(source)
-        source = File.join("#{mount_point}/#{settings.assets_prefix}", source)
+        source =
+            if mount_point == '/'
+              File.join("/#{settings.assets_prefix}", source)
+            else
+              File.join("#{mount_point}/#{settings.assets_prefix}", source)
+            end
+
         source = "/#{source}" unless source[0] == ?/
         source
       end
